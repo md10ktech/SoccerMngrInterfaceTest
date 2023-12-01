@@ -7,7 +7,7 @@ log_er = Logger("SoccerManager")
 user_phone_num = "1234567890"
 
 
-def test_send_verify_code_sms():
+def send_verify_code_sms():
     """SMS Verify Code"""
     response = requests.post(url=domain + '/api/v1/player/login/sms-vc/send',
                              headers={'User-Agent': user_agent},
@@ -16,14 +16,14 @@ def test_send_verify_code_sms():
     assert response.status_code == 200
 
 
-def test_register_phone():
+def register_phone(first_name, last_name, password, verify_code):
     """Register with Phone Number"""
     response = requests.post(url=domain + '/api/v1/player/login/sms/register',
                              headers={'User-Agent': user_agent},
-                             json={"firstName": "Denis",
-                                   "lastName": "Bergkamp",
-                                   "pwd": "1234qwer",
-                                   "verifyCode": "6666",
+                             json={"firstName": first_name,
+                                   "lastName": last_name,
+                                   "pwd": password,
+                                   "verifyCode": verify_code,
                                    "telNo": user_phone_num})
     if response.status_code == 200:
         log_er.log_info(f" Response: {response.content.decode()}")
@@ -32,11 +32,11 @@ def test_register_phone():
     assert response.status_code == 200
 
 
-def test_login_phone():
+def login_phone(password):
     """Login with phone number."""
     response = requests.post(url=domain + '/api/v1/player/login/sms/login',
                              headers={'User-Agent': user_agent},
-                             json={"pwd": "1234qwer",
+                             json={"pwd": password,
                                    "telNo": user_phone_num})
     if response.status_code == 200:
         log_er.log_info(f" Response: {response.content.decode()}")
@@ -45,12 +45,12 @@ def test_login_phone():
     assert response.status_code == 200
 
 
-def test_reset_pwd_phone():
+def reset_pwd_phone(password, verify_code):
     """Reset password using phone number. """
     response = requests.post(url=domain + "/api/v1/player/login/sms/reset-pwd",
                              headers={'User-Agent': user_agent},
-                             json={"pwd": "1234qwer",
-                                   "verifyCode": "6666",
+                             json={"pwd": password,
+                                   "verifyCode": verify_code,
                                    "telNo": user_phone_num})
     if response.status_code == 200:
         log_er.log_info(f" Response: {response.content.decode()}")

@@ -1,6 +1,6 @@
 import pytest
-import requests
-from test_email import user_email, user_agent, domain
+# import requests
+# from test_email import user_email, user_agent, domain
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -21,14 +21,25 @@ def pytest_runtest_makereport(item, call):
         report.nodeid = docstring
 
 
-@pytest.fixture
-def get_token_from_email_login():
-    response = requests.post(url=domain + '/api/v1/player/login/email/login',
-                             headers={'User-Agent': user_agent},
-                             json={"pwd": "password123",
-                                   "email": user_email})
-    if response.status_code == 200:
-        return response.content.decode()
-    else:
-        return response.json()
+# @pytest.fixture
+# def get_token_from_email_login():
+#     response = requests.post(url=domain + '/api/v1/player/login/email/login',
+#                              headers={'User-Agent': user_agent},
+#                              json={"pwd": "password123",
+#                                    "email": user_email})
+#     if response.status_code == 200:
+#         return response.content.decode()
+#     else:
+#         return response.json()
 
+
+# @pytest.fixture
+# def get_token_from_phone_login():
+#     response = requests.post(url=domain + '/api/v1/player/login/sms/login',
+#                              headers={'User-Agent': user_agent},
+#                              json={"pwd": "password123",
+#                                    "telNo": "1234567890"})
+#     if response.status_code == 200:
+#         return response.content.decode()
+#     else:
+#         return response.json()
