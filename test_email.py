@@ -9,15 +9,22 @@ user_agent = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.3
 user_email = "muhsen@gmail.com"
 
 
-def send_verify_code_email():
+def send_verify_code_email(email):
     response = requests.post(url=domain + '/api/v1/player/login/email-vc/send',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
-                             json={'email': user_email})
-    error = ""
-    if not response.status_code == 200:
+                             json={'email': email})
+    vc_success = True
+    error = {}
+    if response.status_code == 400:
+        # As long as it does not return "vc not expired" error, continue.
         error = response.json()
-    response_values = {"status_code": response.status_code, "error": error}
-    return response_values
+        if error["code"] == "VC_NOT_EXPIRED":
+            log_er.log_info(f" Verify Code for this email was already sent less than 5 minutes ago. Move on to the"
+                            f" next step.")
+        else:
+            log_er.log_info(f" Failed to obtain verify code: {response.json()}")
+            vc_success = False
+    return vc_success
 
 
 def register_email(first_name, last_name, password, verify_code):
@@ -42,7 +49,7 @@ def login_email(password):
                              headers={'User-Agent': user_agent},
                              json={"pwd": password,
                                    "email": user_email})
-    return response.status_code
+    return response.content.decode()
 
 
 def reset_pwd_email(password, verify_code):
@@ -54,17 +61,24 @@ def reset_pwd_email(password, verify_code):
     return response.status_code
 
 
-def test_email_verify_code():
-    """Able to obtain verify code for email address registration."""
-    send_verify_code_email()
+def test_get_vc_valid_email():
+    """ Get verify code with a valid email."""
+    send_status = send_verify_code_email(user_email)  # Does not return anything if success.
+    assert send_status
+
+
+def test_get_vc_invalid_email():
+    """ Verify code should not be sent with an invalid email."""
+    send_status = send_verify_code_email("muhsengmailcom")
+    assert not send_status
 
 
 def test_register_email():
-    """Register with valid email address."""
+    """Register with valid email address. No standalone."""
     # STEP 1 - Get Verify Code first
-    verify_code_response = send_verify_code_email()
+    vc_response = send_verify_code_email(user_email)
     time.sleep(1)
-    if verify_code_response == 200:
+    if vc_response["status_code"] == 200:
         # STEP 2 - Register with email. Success returns TOKEN.
         register_response = register_email(first_name="Natalie", last_name="Portman",
                                            password="Thor1234", verify_code="6666")
@@ -75,8 +89,8 @@ def test_register_email():
             log_er.log_info(f" Player Info: {json_data}")
             assert register_response["status_code"] == 200
     else:
-        log_er.log_info(f" Failed at obtaining verify code.")
-        assert verify_code_response
+        log_er.log_info(f" Failed obtaining verify code. Error: {vc_response['error']}")
+        assert vc_response["status_code"]
 
 
 # def test_template():
