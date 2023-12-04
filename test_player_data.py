@@ -1,8 +1,6 @@
 import requests
-from logger import Logger
 from test_email import domain, user_agent, register_email, send_verify_code_email, log_er, login_email, user_email
 from test_phone import register_phone, send_verify_code_sms
-import json
 
 # Test inputs
 password = "password123"
@@ -12,6 +10,7 @@ def get_player_info(register_token):  # Passing in token here to prevent scope i
     if register_token:
         response = requests.get(url=domain + '/api/v1/player/info',
                                 headers={'User-Agent': user_agent, 'Authorization': register_token})
+        log_er.log_info(f" Get Player Info Data: {response.json()}")
         # response.raise_for_status()
         return response.json()
     else:
