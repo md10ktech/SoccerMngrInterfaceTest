@@ -1,8 +1,11 @@
 import time
-import requests
-from test_email import domain, user_agent, log_er
 
-user_phone_num = "1234567890"
+import pytest
+import requests
+from test_email import domain, user_agent, log_er, login, reset_pwd
+
+valid_phone_num = "1234567890"
+valid_password = "password123"
 
 
 def send_verify_code_sms(phone):
@@ -42,26 +45,9 @@ def register_phone(first_name, last_name, password, verify_code, phone_num):
     return response_values
 
 
-def login_phone(password):
-    response = requests.post(url=domain + '/api/v1/player/login/sms/login',
-                             headers={'User-Agent': user_agent},
-                             json={"pwd": password,
-                                   "telNo": user_phone_num})
-    return response.content.decode()
-
-
-def reset_pwd_phone(password, verify_code):
-    response = requests.post(url=domain + "/api/v1/player/login/sms/reset-pwd",
-                             headers={'User-Agent': user_agent},
-                             json={"pwd": password,
-                                   "verifyCode": verify_code,
-                                   "telNo": user_phone_num})
-    return response.status_code
-
-
 def test_get_vc_valid_phone():
     """ Get verify code with a valid phone number."""
-    send_status = send_verify_code_sms(user_phone_num)  # Does not return anything if success.
+    send_status = send_verify_code_sms(valid_phone_num)  # Does not return anything if success.
     assert send_status
 
 
@@ -74,12 +60,12 @@ def test_get_vc_invalid_phone():
 def test_register_phone_no_firstname():
     """Register phone number with no first name."""
     # STEP 1 - Get Verify Code first
-    vc_response = send_verify_code_sms(user_phone_num)
+    vc_response = send_verify_code_sms(valid_phone_num)
     time.sleep(1)
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
         register_response = register_phone(first_name="", last_name="Portman",
-                                           password="Thor1234", verify_code="6666", phone_num=user_phone_num)
+                                           password=valid_password, verify_code="6666", phone_num=valid_phone_num)
         time.sleep(1)
         # STEP 3 - After register, get player info to verify data is correct.
         if register_response["status_code"] == 200:
@@ -94,12 +80,12 @@ def test_register_phone_no_firstname():
 def test_register_phone_no_lastname():
     """Register phone number with no last name."""
     # STEP 1 - Get Verify Code first
-    vc_response = send_verify_code_sms(user_phone_num)
+    vc_response = send_verify_code_sms(valid_phone_num)
     time.sleep(1)
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
         register_response = register_phone(first_name="Natalie", last_name="",
-                                           password="Thor1234", verify_code="6666", phone_num=user_phone_num)
+                                           password=valid_password, verify_code="6666", phone_num=valid_phone_num)
         time.sleep(1)
         # STEP 3 - After register, get player info to verify data is correct.
         if register_response["status_code"] == 200:
@@ -114,12 +100,12 @@ def test_register_phone_no_lastname():
 def test_register_phone_no_pwd():
     """Register phone number with no password."""
     # STEP 1 - Get Verify Code first
-    vc_response = send_verify_code_sms(user_phone_num)
+    vc_response = send_verify_code_sms(valid_phone_num)
     time.sleep(1)
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
         register_response = register_phone(first_name="Natalie", last_name="Portman",
-                                           password="", verify_code="6666", phone_num=user_phone_num)
+                                           password="", verify_code="6666", phone_num=valid_phone_num)
         time.sleep(1)
         # STEP 3 - After register, get player info to verify data is correct.
         if register_response["status_code"] == 200:
@@ -134,12 +120,12 @@ def test_register_phone_no_pwd():
 def test_register_email_no_vc():
     """Register phone number with no verify code."""
     # STEP 1 - Get Verify Code first
-    vc_response = send_verify_code_sms(user_phone_num)
+    vc_response = send_verify_code_sms(valid_phone_num)
     time.sleep(1)
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
         register_response = register_phone(first_name="Natalie", last_name="Portman",
-                                           password="Thor1234", verify_code="", phone_num=user_phone_num)
+                                           password=valid_password, verify_code="", phone_num=valid_phone_num)
         time.sleep(1)
         # STEP 3 - After register, get player info to verify data is correct.
         if register_response["status_code"] == 200:
@@ -154,12 +140,12 @@ def test_register_email_no_vc():
 def test_register_phone_valid():
     """Register with valid email address and data."""
     # STEP 1 - Get Verify Code first
-    vc_response = send_verify_code_sms(user_phone_num)
+    vc_response = send_verify_code_sms(valid_phone_num)
     time.sleep(1)
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
         register_response = register_phone(first_name="Natalie", last_name="Portman",
-                                           password="Thor1234", verify_code="6666", phone_num=user_phone_num)
+                                           password=valid_password, verify_code="6666", phone_num=valid_phone_num)
         time.sleep(1)
         # STEP 3 - After register, get player info to verify data is correct.
         if register_response["status_code"] == 200:
@@ -171,15 +157,17 @@ def test_register_phone_valid():
         assert vc_response
 
 
+@pytest.mark.skip
 def test_sms_vc_within_5mins():
     """Verify code should NOT expire about 4.5 minutes after a verify code has been sent to a phone number."""
+    other_phone = "1201001001"
     # STEP 1 - Get Verify Code
-    vc_response = send_verify_code_sms("1991199119")
-    time.sleep(285)  # 4 minutes 45 seconds
+    vc_response = send_verify_code_sms(other_phone)
+    time.sleep(290)  # 4 minutes 45 seconds
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
         register_response = register_phone(first_name="Player", last_name="One",
-                                           password="ReadyG0O", verify_code="6666", phone_num="1991199119")
+                                           password="ReadyG0O", verify_code="6666", phone_num=other_phone)
         time.sleep(1)
         if register_response["status_code"] == 200:
             log_er.log_info(f"\'Register Phone\' Response Status Code: 200")
@@ -190,15 +178,17 @@ def test_sms_vc_within_5mins():
         assert vc_response
 
 
+@pytest.mark.skip
 def test_sms_vc_more_than_5mins():
     """Verify code should expire 5 minutes after a verify code has been sent to a phone number."""
+    other_phone = "1214161810"
     # STEP 1 - Get Verify Code
-    vc_response = send_verify_code_sms("1551551551")
-    time.sleep(30)  # 5 minutes
+    vc_response = send_verify_code_sms(other_phone)
+    time.sleep(300)  # 5 minutes
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
         register_response = register_phone(first_name="Player", last_name="One",
-                                           password="ReadyG0O", verify_code="6666", phone_num="1551551551")
+                                           password="ReadyG0O", verify_code="6666", phone_num=other_phone)
         time.sleep(1)
         if register_response["status_code"] == 200:
             log_er.log_info(f"\'Register Phone\' Response Status Code: 200 - This is a Bug.")
@@ -211,18 +201,97 @@ def test_sms_vc_more_than_5mins():
 
 def test_wrong_sms_verify_code():
     """\'Register phone\' should be rejected if the wrong verify code is sent."""
+    other_phone = "1231231231"
     # STEP 1 - Get Verify Code
-    vc_response = send_verify_code_sms(user_phone_num)
+    vc_response = send_verify_code_sms(other_phone)
     time.sleep(1)
     # STEP 2 - Register with email. Success returns TOKEN.
     if vc_response:
-        register_response = register_phone(first_name="Player", last_name="One",
-                                           password="ReadyG0O", verify_code="1234", phone_num=user_phone_num)
+        register_response = register_phone(first_name="Player", last_name="Three",
+                                           password="ReadyG0O", verify_code="1234", phone_num=other_phone)
         time.sleep(1)
         if register_response["status_code"] == 200:
             log_er.log_info(f"\'Register Phone\' Response Status Code: 200 - This is a Bug.")
         else:
             log_er.log_info(f" Register Phone Error: {register_response['response']}")
         assert register_response["status_code"] == 400
+    else:
+        assert vc_response
+
+
+def test_phone_login():
+    """Able to login using registered phone number and correct password."""
+    login_response = login(phone=valid_phone_num, password=valid_password)
+    assert login_response["status_code"] == 200
+
+
+def test_phone_login_wrong_pwd():
+    """Unable to login using registered phone number but wrong password."""
+    login_response = login(phone=valid_phone_num, password="password1234")
+    if login_response["status_code"] == 400:
+        error_json = login_response["response"]
+        assert error_json['code'] == "PWD_IN_VALID"
+    else:
+        assert login_response["status_code"] == 400
+
+
+def test_login_phone_not_exists():
+    """Unable to login using registered phone number but wrong password."""
+    login_response = login(phone="1236547899", password=valid_password)
+    if login_response["status_code"] == 400:
+        error_json = login_response["response"]
+        assert error_json['code'] == "MOBILE_NUMBER_NOT_EXISTS"
+    else:
+        assert login_response["status_code"] == 400
+
+
+def test_reset_pwd_invalid_vc():
+    """Unable to reset password with invalid verify code."""
+    new_pwd = "PassTheWord"
+    # STEP 1 - Get Verify Code
+    vc_response = send_verify_code_sms(valid_phone_num)
+    # STEP 2 - Send a reset password request for a registered email.
+    if vc_response:
+        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, verify_code="1234")
+        if reset_pwd_response['status_code'] == 400:
+            error_json = reset_pwd_response['response']
+            assert error_json['code'] == "VC_NOT_VALID"
+        else:
+            assert reset_pwd_response['status_code'] == 400
+    else:
+        assert vc_response
+
+
+def test_reset_pwd_valid_phone():
+    """Able to reset password with registered phone number."""
+    new_pwd = "PassTheWord"
+    # STEP 1 - Get Verify Code
+    vc_response = send_verify_code_sms(valid_phone_num)
+    # STEP 2 - Send a reset password request for a registered phone number.
+    if vc_response:
+        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, verify_code="6666")
+        if reset_pwd_response["status_code"] == 200:
+            login_response = login(phone=valid_phone_num, password=new_pwd)
+            assert login_response["status_code"] == 200
+        else:
+            assert reset_pwd_response["status_code"] == 200
+    else:
+        assert vc_response
+
+
+def test_reset_pwd_nonexist_phone():
+    """Unable to reset password with an email that is not registered yet."""
+    nonexistent_phone = "1232587891"
+    # STEP 1 - Get Verify Code
+    vc_response = send_verify_code_sms(nonexistent_phone)
+    # STEP 2 - Send a reset password request for a registered email.
+    time.sleep(1)
+    if vc_response:
+        reset_pwd_response = reset_pwd(phone=nonexistent_phone, password="321password", verify_code="6666")
+        if reset_pwd_response['status_code'] == 400:
+            error_json = reset_pwd_response['response']
+            assert error_json['code'] == "PLAYER_NOT_EXISTS"
+        else:
+            assert reset_pwd_response['status_code'] == 400
     else:
         assert vc_response

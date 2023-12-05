@@ -1,11 +1,11 @@
 import pytest
 # import requests
-# from test_email import user_email, user_agent, domain
+import email_report
 
 
 def pytest_sessionfinish(session, exitstatus):
     pass
-    # email_report.send_email_report(f"Open Weather API Test Results", location_set)
+    # email_report.send_email_report(f"Soccer Manager API Test Results")
 
 
 # This is currently setup to change the values of the node id to documentation strings added in test functions.
