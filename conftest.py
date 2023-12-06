@@ -4,8 +4,7 @@ import email_report
 
 
 def pytest_sessionfinish(session, exitstatus):
-    pass
-    # email_report.send_email_report(f"Soccer Manager API Test Results")
+    email_report.send_email_report(f"Soccer Manager API Test Results")
 
 
 # This is currently setup to change the values of the node id to documentation strings added in test functions.

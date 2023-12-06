@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 import console_logs as cs_logs
 
 
-def parse_json_to_html(location):
+def parse_json_to_html(subject):
     with open(".report.json") as json_file:
         test_data = json.load(json_file)
     with open("report_body.html") as html_body_file:
@@ -18,9 +18,9 @@ def parse_json_to_html(location):
     created_time = time.strftime("%d-%m-%Y %H:%M:%S", time.localtime(test_data["created"]))
     created_time_tag = html_body.find(name='p', id='created_time')
     created_time_tag.string = f"This report was generated on {created_time}"
+    html_body.find(name='h1', id="api_test").string = f"{subject}"
     html_body.find(name='p', id='platform').string = f"Platform: {platform.platform()}"
     # print(f"Platform: {platform.platform()}")
-    html_body.find(name='b', id='location').string = f"{location}"
     html_body.find(name='b', id='total_tests').string = f"{test_data['summary']['total']}"
     html_body.find(name='b', id='total_duration').string = f"{round(test_data['duration'], 2)} seconds."
     # print(f"Test took {round(test_data['duration'], 2)} seconds to complete.")
@@ -44,7 +44,7 @@ def parse_json_to_html(location):
 
         if test['outcome'] == "error":
             log_msg.append(test['setup']['longrepr'])
-        else:
+        elif 'call' in test:
             if 'log' in test['call']:
                 for i in range(len(test['call']['log'])):
                     log_msg.append(test['call']['log'][i]['msg'])

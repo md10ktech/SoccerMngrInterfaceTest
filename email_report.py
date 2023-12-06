@@ -12,9 +12,9 @@ report_email["From"] = MY_EMAIL
 report_email["To"] = MY_EMAIL
 
 
-def send_email_report(subject, location):
+def send_email_report(subject):
     time.sleep(2)  # give some time to fully generate json file.
-    json_parser.parse_json_to_html(location)
+    json_parser.parse_json_to_html(subject)
     time.sleep(2)  # give some time to parse json data into html.
 
     report_filepath = f"./report.html"
