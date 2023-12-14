@@ -8,6 +8,16 @@ import time
 import platform
 from bs4 import BeautifulSoup
 import console_logs as cs_logs
+import math
+
+
+def calc_duration(seconds):
+    if seconds > 60:
+        minutes = math.floor(seconds/60)
+        duration_string = f"{minutes} minutes and {round(seconds - minutes*60, 2)} seconds"
+    else:
+        duration_string = f"{round(seconds, 2)} seconds."
+    return duration_string
 
 
 def parse_json_to_html(subject):
@@ -22,7 +32,7 @@ def parse_json_to_html(subject):
     html_body.find(name='p', id='platform').string = f"Platform: {platform.platform()}"
     # print(f"Platform: {platform.platform()}")
     html_body.find(name='b', id='total_tests').string = f"{test_data['summary']['total']}"
-    html_body.find(name='b', id='total_duration').string = f"{round(test_data['duration'], 2)} seconds."
+    html_body.find(name='b', id='total_duration').string = calc_duration(test_data['duration'])
     # print(f"Test took {round(test_data['duration'], 2)} seconds to complete.")
     # "{:.2f}".format(seconds)
     if 'failed' in test_data['summary']:
@@ -111,19 +121,3 @@ def parse_json_to_html(subject):
     with open("report.html", mode="w") as report_file:
         report_file.write(str(html_body))
 
-
-# parse_json_to_html()
-
-# --- Read lines then replace string method ---
-# test_table_html_str = ""
-# test_table_html_str = test_table_html_str + "</table></body></html>"
-# test_table_html_str += (f'<tr>'
-#                         f'<td class="testname"> {test["keywords"][0]} </td>'
-#                         f'<td>'
-#                         f'<span class= "{test["call"]["outcome"]}"> {test["call"]["outcome"].title()} </span>'
-#                         f'</td>'
-#                         f'<td> {round(test["call"]["duration"], 2)} seconds </td>'
-#                         f'</tr>'
-#                         f'<tr>'
-#                         f'<td colspan="3" class="logs"> {log_msg} </td>'
-#                         f'</tr>')

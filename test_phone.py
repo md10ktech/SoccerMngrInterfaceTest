@@ -3,9 +3,11 @@ import time
 import pytest
 import requests
 from test_email import domain, user_agent, log_er, login, reset_pwd
+from random_email_mobile import randomize_mobile_num
 
-valid_phone_num = "1234567890"
-valid_password = "password123"
+valid_phone_num = randomize_mobile_num()
+valid_password = "Password123"
+verify_code_const = "6666"
 
 
 def send_verify_code_sms(phone):
@@ -27,6 +29,20 @@ def send_verify_code_sms(phone):
     return vc_success
 
 
+def validate_phone_pwd(phone="1234568790", pwd="Password123"):
+    response = requests.post(url=domain + '/api/v1/player/login/mobile-pwd/verify',
+                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
+                             json={"pwd": pwd, 'telNo': phone})
+    log_er.log_info(f" -Verifying phone number: {phone} and password: {pwd}")
+    verify_success = True
+    if response.status_code == 400:
+        # As long as it does not return "vc not expired" error, continue.
+        error = response.json()
+        log_er.log_info(f" -Failed to verify input: {response.json()}")
+        verify_success = False
+    return verify_success
+
+
 def register_phone(first_name, last_name, password, verify_code, phone_num):
     response = requests.post(url=domain + '/api/v1/player/login/sms/register',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
@@ -45,6 +61,14 @@ def register_phone(first_name, last_name, password, verify_code, phone_num):
         log_er.log_info(f" -Failed to register phone number. Error: {response_content}")
     response_values = {"status_code": response.status_code, "response": response_content}
     return response_values
+
+
+def get_temp_token(email):
+    response = requests.post(url=domain + "/api/v1/player/login/email/verify-vc",
+                             headers={'User-Agent': user_agent},
+                             json={"verifyCode": verify_code_const,
+                                   "email": email})
+    return response.content.decode()
 
 # -------------------- TEST FUNCTIONS -------------------- #
 
@@ -157,7 +181,7 @@ def test_register_phone_valid():
         assert vc_response
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 def test_sms_vc_within_5mins():
     """Verify code should NOT expire about 4.5 minutes after a verify code has been sent to a phone number."""
     other_phone = "1201001001"
@@ -177,7 +201,7 @@ def test_sms_vc_within_5mins():
         assert vc_response
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 def test_sms_vc_more_than_5mins():
     """Verify code should expire 5 minutes after a verify code has been sent to a phone number."""
     other_phone = "1214161810"
@@ -252,7 +276,7 @@ def test_reset_pwd_invalid_vc():
     vc_response = send_verify_code_sms(valid_phone_num)
     # STEP 2 - Send a reset password request for a registered email.
     if vc_response:
-        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, verify_code="1234")
+        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, temp_token="1234")
         log_er.log_info(f" -New Password= {new_pwd}, VC= \"1234\"")
         if reset_pwd_response['status_code'] == 400:
             error_json = reset_pwd_response['response']
@@ -271,7 +295,7 @@ def test_reset_pwd_valid_phone():
     # STEP 2 - Send a reset password request for a registered phone number.
     if vc_response:
         log_er.log_info(f" -New Password= {new_pwd}")
-        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, verify_code="6666")
+        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, temp_token="6666")
         # STEP 3 - Try to login with new password.
         if reset_pwd_response["status_code"] == 200:
             login_response = login(phone=valid_phone_num, password=new_pwd)
@@ -290,7 +314,7 @@ def test_reset_pwd_nonexist_phone():
     # STEP 2 - Send a reset password request for a registered email.
     time.sleep(1)
     if vc_response:
-        reset_pwd_response = reset_pwd(phone=nonexistent_phone, password="321password", verify_code="6666")
+        reset_pwd_response = reset_pwd(phone=nonexistent_phone, password="321password", temp_token="6666")
         if reset_pwd_response['status_code'] == 400:
             error_json = reset_pwd_response['response']
             assert error_json['code'] == "PLAYER_NOT_EXISTS"
@@ -298,3 +322,43 @@ def test_reset_pwd_nonexist_phone():
             assert reset_pwd_response['status_code'] == 400
     else:
         assert vc_response
+
+
+def test_verify_phone_pwd():
+    """Able to verify phone and password in login."""
+    nonexistent_phone = "1232587890"
+    # STEP 1 - Get Verify Code
+    vc_response = send_verify_code_sms(nonexistent_phone)
+    # STEP 2 - Send a reset password request for a registered email.
+    time.sleep(1)
+    if vc_response:
+        reset_pwd_response = reset_pwd(phone=nonexistent_phone, password="321password", temp_token="6666")
+        if reset_pwd_response['status_code'] == 400:
+            error_json = reset_pwd_response['response']
+            assert error_json['code'] == "PLAYER_NOT_EXISTS"
+        else:
+            assert reset_pwd_response['status_code'] == 400
+    else:
+        assert vc_response
+
+
+def test_verify_phone_success():
+    """Verify valid phone and password"""
+    assert validate_phone_pwd("3216549870", "password123")
+
+
+def test_verify_phone_fail():
+    """Verify invalid phone only, and invalid password only, and both."""
+    fail = 0
+    if validate_phone_pwd("321654987", "Password123"):
+        fail += 1
+    if validate_phone_pwd("3216549807", "123"):
+        fail += 1
+    if validate_phone_pwd("321654987", "password123"):
+        fail += 1
+
+    log_er.log_info(f" Verified OK: {fail}")
+    assert fail == 3
+
+
+

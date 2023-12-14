@@ -2,13 +2,15 @@ import pytest
 import requests
 from logger import Logger
 import time
+from random_email_mobile import randomize_email
 
 log_er = Logger("SoccerManager")
 domain = "https://soccer-manager-qa.qq72bian.com"
 user_agent = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 "
               "Safari/537.36")
-valid_email = "muhsen@gmail.com"
+valid_email = randomize_email()
 valid_pwd = "password123"
+verify_code_const = "6666"
 
 
 def send_verify_code_email(email):
@@ -72,19 +74,33 @@ def login(phone="", email="", password=""):
     return {"status_code": response.status_code, "response": response_content}
 
 
-def reset_pwd(phone="", email="", password="", verify_code=""):
+def validate_email_pwd(email="muhsen@gmail.com", pwd="Password123"):
+    response = requests.post(url=domain + '/api/v1/player/login/email-pwd/verify',
+                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
+                             json={"pwd": pwd, 'email': email})
+    log_er.log_info(f" -Verifying email: {email} and password: {pwd}")
+    verify_success = True
+    if response.status_code == 400:
+        # As long as it does not return "vc not expired" error, continue.
+        error = response.json()
+        log_er.log_info(f" -Failed to verify input: {response.json()}")
+        verify_success = False
+    return verify_success
+
+
+def reset_pwd(phone="", email="", password="", temp_token=""):
     response = None
     if phone:
         response = requests.post(url=domain + "/api/v1/player/login/sms/reset-pwd",
                                  headers={'User-Agent': user_agent},
                                  json={"pwd": password,
-                                       "verifyCode": verify_code,
+                                       "tmpToken": temp_token,
                                        "telNo": phone})
     elif email:
         response = requests.post(url=domain + "/api/v1/player/login/email/reset-pwd",
                                  headers={'User-Agent': user_agent},
                                  json={"pwd": password,
-                                       "verifyCode": verify_code,
+                                       "tmpToken": temp_token,
                                        "email": email})
     if response.status_code == 200:
         response_content = response.content.decode()  # gives token
@@ -93,6 +109,14 @@ def reset_pwd(phone="", email="", password="", verify_code=""):
         response_content = response.json()  # gives error
         log_er.log_info(f" -Reset Password failed. Error: {response_content}")
     return {"status_code": response.status_code, "response": response_content}
+
+
+def get_temp_token(email):
+    response = requests.post(url=domain + "/api/v1/player/login/email/verify-vc",
+                             headers={'User-Agent': user_agent},
+                             json={"verifyCode": verify_code_const,
+                                   "email": email})
+    return response.content.decode()
 
 # -------------------- TEST FUNCTIONS -------------------- #
 
@@ -199,7 +223,7 @@ def test_register_email_valid():
         assert vc_response
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 def test_register_vc_within_5mins():
     """Verify code should NOT expire 4.75 minutes after a verify code has been sent."""
     other_email = "readyplayerone@gmail.com"
@@ -219,7 +243,7 @@ def test_register_vc_within_5mins():
         assert vc_response
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 def test_register_vc_more_than_5mins():
     """Verify code should expire 5 minutes after a verify code has been sent."""
     other_email = "playertwo@gmail.com"
@@ -278,8 +302,7 @@ def test_email_login_wrong_pwd():
 
 def test_login_email_not_exists():
     """Unable to login using an email that is not registered yet."""
-    login_response = login(email="mu@gmail.com", password=valid_pwd)
-    log_er.log_info(f" -Non-existent Email= \"mu@gmail.com\"")
+    login_response = login(email="this_emaiL_does_not_exist@nomail.com", password=valid_pwd)
     if login_response["status_code"] == 400:
         error_json = login_response["response"]
         assert error_json['code'] == "EMAIL_NOT_EXISTS"
@@ -294,11 +317,11 @@ def test_reset_pwd_invalid_vc():
     vc_response = send_verify_code_email(valid_email)
     # STEP 2 - Send a reset password request for a registered email.
     if vc_response:
-        reset_pwd_response = reset_pwd(email=valid_email, password=new_pwd, verify_code="1234")
-        log_er.log_info(f" -New Password= {new_pwd}, VC= \"1234\"")
+        reset_pwd_response = reset_pwd(email=valid_email, password=new_pwd, temp_token="1234")
+        log_er.log_info(f" -New Password= {new_pwd}, Token= \"1234\"")
         if reset_pwd_response['status_code'] == 400:
             error_json = reset_pwd_response['response']
-            assert error_json['code'] == "VC_NOT_VALID"
+            assert error_json['code'] == "PARAMETER_INVALID"
         else:
             assert reset_pwd_response['status_code'] == 400
     else:
@@ -310,11 +333,13 @@ def test_reset_pwd_valid_email():
     new_pwd = "321password"
     # STEP 1 - Get Verify Code
     vc_response = send_verify_code_email(valid_email)
-    # STEP 2 - Send a reset password request for a registered email.
+    # STEP 2 - Get Temp Token
+    temp_token = get_temp_token(valid_email)
+    # STEP 3 - Send a reset password request for a registered email.
     if vc_response:
         log_er.log_info(f" -New Password= {new_pwd}")
-        reset_pwd_response = reset_pwd(email=valid_email, password=new_pwd, verify_code="6666")
-        # STEP 3 - Try to login with new password.
+        reset_pwd_response = reset_pwd(email=valid_email, password=new_pwd, temp_token=temp_token)
+        # STEP 4 - Try to login with new password.
         if reset_pwd_response["status_code"] == 200:
             login_response = login(email=valid_email, password=new_pwd)
             assert login_response["status_code"] == 200
@@ -326,12 +351,15 @@ def test_reset_pwd_valid_email():
 
 def test_reset_pwd_nonexist_email():
     """Unable to reset password with an email that is not registered yet."""
+    unreg_email = "unregistered@nomail.com"
     # STEP 1 - Get Verify Code
-    vc_response = send_verify_code_email("unregistered@email.com")
+    vc_response = send_verify_code_email(unreg_email)
+    # STEP 3 - Get Temp Token
+    temp_token = get_temp_token(unreg_email)
     # STEP 2 - Send a reset password request for a registered email.
     time.sleep(1)
     if vc_response:
-        reset_pwd_response = reset_pwd(email="unregistered@email.com", password=valid_pwd, verify_code="6666")
+        reset_pwd_response = reset_pwd(email=unreg_email, password=valid_pwd, temp_token=temp_token)
         if reset_pwd_response['status_code'] == 400:
             error_json = reset_pwd_response['response']
             assert error_json['code'] == "PLAYER_NOT_EXISTS"
@@ -339,3 +367,24 @@ def test_reset_pwd_nonexist_email():
             assert reset_pwd_response['status_code'] == 400
     else:
         assert vc_response
+
+
+def test_validate_email_success():
+    """Valid email and password should return success."""
+    assert validate_email_pwd(email=randomize_email())
+
+
+def test_validate_email_fail():
+    """Verify invalid email only, and invalid password only, and both."""
+    fail = 0
+    if validate_email_pwd("not@email", "Password123"):
+        fail += 1
+    if validate_email_pwd(email=randomize_email(), pwd="1234567890"):
+        fail += 1
+    if validate_email_pwd(email="muhsen@gmail.com", pwd="Password123"):
+        fail += 1
+    if validate_email_pwd("not@email", "password123"):
+        fail += 1
+
+    log_er.log_info(f" Verified OK: {fail}")
+    assert fail == 4

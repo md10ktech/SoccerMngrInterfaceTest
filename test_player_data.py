@@ -37,7 +37,7 @@ def test_get_player_info_email():
 
 def test_update_nickname_email():
     """Able to change nickname of a player who registered with email."""
-    nickname_new_value = "Princess Amidala"
+    nickname_new_value = "Swan Dancer"
     # Assuming the above test case has been run prior to this.
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:
@@ -58,7 +58,7 @@ def test_update_nickname_email():
 
 def test_update_club_name_email():
     """Able to change club name of a player who registered with email."""
-    club_name_new_value = "Spy Family Fan Club"
+    club_name_new_value = "Gastronomy Club"
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:
         token = login_response["response"]
@@ -78,7 +78,7 @@ def test_update_club_name_email():
 
 def test_update_icon_index_email():
     """Able to change icon index of a player who registered with email."""
-    head_icon_new_index = "7e53nt"
+    head_icon_new_index = "2"  # 7e53nt
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:
         token = login_response["response"]
@@ -133,7 +133,7 @@ def test_get_player_info_phone():
 
 def test_update_nickname_phone():
     """Able to change nickname of a player who registered with phone number."""
-    nickname_new_value = "Ice Queen"
+    nickname_new_value = "Aussie Actress"
     # Assuming the above test case has been run prior to this.
     login_response = login(phone=valid_phone_num, password=password)
     if login_response['status_code'] == 200:
@@ -154,7 +154,7 @@ def test_update_nickname_phone():
 
 def test_update_club_name_phone():
     """Able to change club name of a player who registered with phone number."""
-    club_name_new_value = "Astronomy Club"
+    club_name_new_value = "Followers of No Name"
     login_response = login(phone=valid_phone_num, password=password)
     if login_response['status_code'] == 200:
         token = login_response["response"]
@@ -175,7 +175,7 @@ def test_update_club_name_phone():
 # @pytest.mark.skip
 def test_update_icon_index_phone():
     """Able to change icon index of a player who registered with phone number."""
-    head_icon_new_index = "7e53nt"
+    head_icon_new_index = "3"  # 7e53nt
     login_response = login(phone=valid_phone_num, password=password)
     if login_response['status_code'] == 200:
         token = login_response["response"]
