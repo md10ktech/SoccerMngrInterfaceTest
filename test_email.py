@@ -78,12 +78,12 @@ def validate_email_pwd(email="muhsen@gmail.com", pwd="Password123"):
     response = requests.post(url=domain + '/api/v1/player/login/email-pwd/verify',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
                              json={"pwd": pwd, 'email': email})
-    log_er.log_info(f" -Verifying email: {email} and password: {pwd}")
+    log_er.log_info(f" -Validating email: {email} and password: {pwd}")
     verify_success = True
     if response.status_code == 400:
         # As long as it does not return "vc not expired" error, continue.
         error = response.json()
-        log_er.log_info(f" -Failed to verify input: {response.json()}")
+        log_er.log_info(f" -Failed to validate input: {response.json()}")
         verify_success = False
     return verify_success
 
@@ -377,14 +377,15 @@ def test_validate_email_success():
 def test_validate_email_fail():
     """Verify invalid email only, and invalid password only, and both."""
     fail = 0
-    if validate_email_pwd("not@email", "Password123"):
+    # validate email format.
+    if not validate_email_pwd("not@email", "Password123"):
         fail += 1
-    if validate_email_pwd(email=randomize_email(), pwd="1234567890"):
+    # validate if email is already registered.
+    if not validate_email_pwd(email="muhsen@gmail.com", pwd="Password123"):
         fail += 1
-    if validate_email_pwd(email="muhsen@gmail.com", pwd="Password123"):
-        fail += 1
-    if validate_email_pwd("not@email", "password123"):
+    # validate if password meets requirement.
+    if not validate_email_pwd(randomize_email(), "password123"):
         fail += 1
 
-    log_er.log_info(f" Verified OK: {fail}")
-    assert fail == 4
+    log_er.log_info(f" Num of Failed Validation: {fail}")
+    assert fail == 3

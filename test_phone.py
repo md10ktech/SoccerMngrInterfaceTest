@@ -33,7 +33,7 @@ def validate_phone_pwd(phone="1234568790", pwd="Password123"):
     response = requests.post(url=domain + '/api/v1/player/login/mobile-pwd/verify',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
                              json={"pwd": pwd, 'telNo': phone})
-    log_er.log_info(f" -Verifying phone number: {phone} and password: {pwd}")
+    log_er.log_info(f" -Validating phone number: {phone} and password: {pwd}")
     verify_success = True
     if response.status_code == 400:
         # As long as it does not return "vc not expired" error, continue.
@@ -79,15 +79,15 @@ def test_get_vc_valid_phone():
     assert send_status
 
 
-def test_get_vc_invalid_phone_short():
+def test_get_vc_invalid_phone_too_short():
     """ Verify code should not be sent with an invalid phone number."""
     send_status = send_verify_code_sms("123456789")
     assert not send_status
 
 
-def test_get_vc_invalid_phone_9():
+def test_get_vc_invalid_country_code():
     """ Verify code should not be sent with an invalid phone number."""
-    send_status = send_verify_code_sms("9123456789")
+    send_status = send_verify_code_sms("99934567890234")
     assert not send_status
 
 

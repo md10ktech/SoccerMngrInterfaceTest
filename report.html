@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<style>
+            body {text-align:center;}
+            h1 {color:#aaaaaa; padding:50px}
+            h2 {color:#005099;}
+            table {padding:20px; margin-left: auto; margin-right: auto; border-collapse: collapse;}
+            th {padding:10px;}
+            td {padding:10px; border: 1px solid;}
+            td.testname {text-align: left;}
+            td.logs {font-family: "Courier New", Courier, monospace; text-align: left; background-color: #eeeeee;}
+            .failed {color:red}
+            .passed {color:green}
+            .skipped {color:orange}
+            .xpassed {color:red}
+            .xfailed {color:orange}
+            .error {color:red}
+            td.infologs {padding:0px; border:0px;}
+        </style>
+</head>
+<body>
+<h1 id="api_test">Soccer Manager API Test Results</h1>
+<p id="created_time">This report was generated on 15-12-2023 09:59:30</p>
+<h2>Environment</h2>
+<p id="platform">Platform: macOS-14.1.2-arm64-arm-64bit</p>
+<h2>Summary</h2>
+<p>Total Tests: <b id="total_tests">1</b></p>
+<p>Total Duration: <b id="total_duration">0.85 seconds.</b></p>
+<table>
+<tr>
+<td><span class="failed" id="failed">Failed: 1</span></td>
+<td><span class="passed" id="passed">Passed: 0</span></td>
+<td><span class="skipped" id="skipped">Skipped: 0</span></td>
+<td><span class="skipped" id="xfailed">Expected Failures: 0</span></td>
+<td><span class="failed" id="xpassed">Unexpected Passes: 0</span></td>
+<td><span class="failed" id="errors">Errors: 0</span></td>
+<td><span class="skipped" id="reruns">Reruns: 0</span></td>
+</tr>
+</table>
+<h2>Test Results</h2>
+<table id="results_table" style="width: 800px">
+<tr>
+<th style="width:50%"><h3>Expected Results</h3></th>
+<th style="width:20%"><h3>Test Fn</h3></th>
+<th style="width:15%"><h3>Outcome</h3></th>
+<th><h3>Duration</h3></th>
+</tr>
+<tr><td class="testname">Verify invalid email only, and invalid password only, and both.</td><td class="testname">test_validate_email_fail</td><td><span class="failed">Failed</span></td><td>0.79 seconds</td></tr><tr><td class="logs" colspan="4"><span> -Validating email: not@email and password: Password123<br/></span><span> -Validating email: muhsen@gmail.com and password: Password123<br/></span><span> -Failed to validate input: {'code': 'EMAIL_EXISTS', 'message': '邮件地址已存在', 'extraInfo': None}<br/></span><span> -Validating email: Xh8Yr@email.com and password: password123<br/></span><span> Num of Failed Validation: 1<br/></span></td></tr></table>
+<table id="browser_info_logs">
+<tr>
+<th><h2>Browser Info Console Logs</h2></th>
+</tr>
+</table>
+</body>
+</html>
