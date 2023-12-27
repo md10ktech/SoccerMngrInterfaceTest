@@ -1,10 +1,13 @@
 import pytest
 import requests
-from test_email import domain, user_agent, register_email, send_verify_code_email, log_er, valid_email, login
-from test_phone import register_phone, send_verify_code_sms, valid_phone_num
+from test_email import domain, user_agent, register_email, send_verify_code_email, log_er, login
+from test_phone import register_phone, send_verify_code_sms
+from random_email_mobile import randomize_email, randomize_mobile_num
 
 # Test inputs
-password = "password123"
+password = "Password123"
+valid_email = randomize_email()
+valid_phone_num = randomize_mobile_num()
 
 
 def get_player_info(register_token):  # Passing in token here to prevent scope issues
@@ -37,7 +40,7 @@ def test_get_player_info_email():
 
 def test_update_nickname_email():
     """Able to change nickname of a player who registered with email."""
-    nickname_new_value = "Swan Dancer"
+    nickname_new_value = "I Am Batman"
     # Assuming the above test case has been run prior to this.
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:

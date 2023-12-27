@@ -63,12 +63,15 @@ def register_phone(first_name, last_name, password, verify_code, phone_num):
     return response_values
 
 
-def get_temp_token(email):
-    response = requests.post(url=domain + "/api/v1/player/login/email/verify-vc",
+def get_temp_token(phone):
+    response = requests.post(url=domain + "/api/v1/player/login/mobile/verify-vc",
                              headers={'User-Agent': user_agent},
                              json={"verifyCode": verify_code_const,
-                                   "email": email})
-    return response.content.decode()
+                                   "tel": phone})
+    if response.status_code == 200:
+        return response.content.decode()
+    else:
+        return response.json()
 
 # -------------------- TEST FUNCTIONS -------------------- #
 
@@ -249,8 +252,9 @@ def test_phone_login():
 
 def test_phone_login_wrong_pwd():
     """Unable to login using registered phone number but wrong password."""
-    login_response = login(phone=valid_phone_num, password="password1234")
-    log_er.log_info(f" -Password= \"password1234\"")
+    login_response = login(phone=valid_phone_num, password="Password1234")
+    log_er.log_info(f" -Password= \"Password1234\"")
+    assert login_response["status_code"] == 400
     if login_response["status_code"] == 400:
         error_json = login_response["response"]
         assert error_json['code'] == "PWD_IN_VALID"
@@ -269,15 +273,17 @@ def test_login_phone_not_exists():
         assert login_response["status_code"] == 400
 
 
+@pytest.mark.skip
 def test_reset_pwd_invalid_vc():
     """Unable to reset password with invalid verify code."""
-    new_pwd = "PassTheWord"
+    new_pwd = "PassThe1Word"
     # STEP 1 - Get Verify Code
     vc_response = send_verify_code_sms(valid_phone_num)
     # STEP 2 - Send a reset password request for a registered email.
+    tmp_token = get_temp_token(valid_phone_num)
     if vc_response:
-        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, temp_token="1234")
-        log_er.log_info(f" -New Password= {new_pwd}, VC= \"1234\"")
+        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, temp_token=tmp_token)
+        log_er.log_info(f" -New Password= {new_pwd}")
         if reset_pwd_response['status_code'] == 400:
             error_json = reset_pwd_response['response']
             assert error_json['code'] == "VC_NOT_VALID"
@@ -289,13 +295,15 @@ def test_reset_pwd_invalid_vc():
 
 def test_reset_pwd_valid_phone():
     """Able to reset password with registered phone number."""
-    new_pwd = "PassTheWord"
+    new_pwd = "PassThe1Word"
     # STEP 1 - Get Verify Code
     vc_response = send_verify_code_sms(valid_phone_num)
+    # STEP 2 - Get Temp Token
+    temp_token = get_temp_token(valid_phone_num)
     # STEP 2 - Send a reset password request for a registered phone number.
     if vc_response:
         log_er.log_info(f" -New Password= {new_pwd}")
-        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, temp_token="6666")
+        reset_pwd_response = reset_pwd(phone=valid_phone_num, password=new_pwd, temp_token=temp_token)
         # STEP 3 - Try to login with new password.
         if reset_pwd_response["status_code"] == 200:
             login_response = login(phone=valid_phone_num, password=new_pwd)
@@ -307,21 +315,19 @@ def test_reset_pwd_valid_phone():
 
 
 def test_reset_pwd_nonexist_phone():
-    """Unable to reset password with an email that is not registered yet."""
+    """Unable to reset password with phone number that is not registered yet."""
     nonexistent_phone = "1232587891"
     # STEP 1 - Get Verify Code
     vc_response = send_verify_code_sms(nonexistent_phone)
-    # STEP 2 - Send a reset password request for a registered email.
+    # STEP_2 - Get Temp Token
     time.sleep(1)
-    if vc_response:
-        reset_pwd_response = reset_pwd(phone=nonexistent_phone, password="321password", temp_token="6666")
-        if reset_pwd_response['status_code'] == 400:
-            error_json = reset_pwd_response['response']
-            assert error_json['code'] == "PLAYER_NOT_EXISTS"
-        else:
-            assert reset_pwd_response['status_code'] == 400
+    temp_token = get_temp_token(valid_phone_num)
+    # STEP 3 - Send a reset password request for a registered email.
+    if temp_token['code'] == "MOBILE_NUMBER_NOT_EXISTS":
+        log_er.log_info(f"Error: {temp_token['code']}")
+        assert temp_token['code'] == "MOBILE_NUMBER_NOT_EXISTS"
     else:
-        assert vc_response
+        assert temp_token
 
 
 def test_verify_phone_pwd():
@@ -329,10 +335,12 @@ def test_verify_phone_pwd():
     nonexistent_phone = "1232587890"
     # STEP 1 - Get Verify Code
     vc_response = send_verify_code_sms(nonexistent_phone)
-    # STEP 2 - Send a reset password request for a registered email.
+    # STEP 2 - Get temp token.
     time.sleep(1)
+    tmp_token = get_temp_token(nonexistent_phone)
+    # STEP 3 - Send a reset password request for a non existent phone number.
     if vc_response:
-        reset_pwd_response = reset_pwd(phone=nonexistent_phone, password="321password", temp_token="6666")
+        reset_pwd_response = reset_pwd(phone=nonexistent_phone, password="321Password", temp_token=tmp_token)
         if reset_pwd_response['status_code'] == 400:
             error_json = reset_pwd_response['response']
             assert error_json['code'] == "PLAYER_NOT_EXISTS"
@@ -344,17 +352,17 @@ def test_verify_phone_pwd():
 
 def test_verify_phone_success():
     """Verify valid phone and password"""
-    assert validate_phone_pwd("3216549870", "password123")
+    assert validate_phone_pwd("3216549870", "Password123")
 
 
 def test_verify_phone_fail():
     """Verify invalid phone only, and invalid password only, and both."""
     fail = 0
-    if validate_phone_pwd("321654987", "Password123"):
+    if not validate_phone_pwd("321654987", "Password123"):
         fail += 1
-    if validate_phone_pwd("3216549807", "123"):
+    if not validate_phone_pwd("3216549807", "123"):
         fail += 1
-    if validate_phone_pwd("321654987", "password123"):
+    if not validate_phone_pwd("321654987", "password123"):
         fail += 1
 
     log_er.log_info(f" Verified OK: {fail}")

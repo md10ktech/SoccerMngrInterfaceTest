@@ -9,7 +9,7 @@ domain = "https://soccer-manager-qa.qq72bian.com"
 user_agent = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 "
               "Safari/537.36")
 valid_email = randomize_email()
-valid_pwd = "password123"
+valid_pwd = "Password123"
 verify_code_const = "6666"
 
 
@@ -291,8 +291,9 @@ def test_email_login():
 
 def test_email_login_wrong_pwd():
     """Unable to login using registered email but wrong password."""
-    login_response = login(email=valid_email, password="password1234")
-    log_er.log_info(f" -Password= \"password1234\"")
+    # Password still has to meet min. requirement.
+    login_response = login(email=valid_email, password="Password1234")
+    log_er.log_info(f" -Password= \"Password1234\"")
     if login_response["status_code"] == 400:
         error_json = login_response["response"]
         assert error_json['code'] == "PWD_IN_VALID"
@@ -302,7 +303,7 @@ def test_email_login_wrong_pwd():
 
 def test_login_email_not_exists():
     """Unable to login using an email that is not registered yet."""
-    login_response = login(email="this_emaiL_does_not_exist@nomail.com", password=valid_pwd)
+    login_response = login(email="no.such.email@nosuchemail.com", password=valid_pwd)
     if login_response["status_code"] == 400:
         error_json = login_response["response"]
         assert error_json['code'] == "EMAIL_NOT_EXISTS"
@@ -312,7 +313,7 @@ def test_login_email_not_exists():
 
 def test_reset_pwd_invalid_vc():
     """Unable to reset password with invalid verify code."""
-    new_pwd = "321password"
+    new_pwd = "321Password"
     # STEP 1 - Get Verify Code
     vc_response = send_verify_code_email(valid_email)
     # STEP 2 - Send a reset password request for a registered email.
@@ -330,7 +331,7 @@ def test_reset_pwd_invalid_vc():
 
 def test_reset_pwd_valid_email():
     """Able to reset password with registered email."""
-    new_pwd = "321password"
+    new_pwd = "321Password"  # Password still to meet min. req.
     # STEP 1 - Get Verify Code
     vc_response = send_verify_code_email(valid_email)
     # STEP 2 - Get Temp Token
