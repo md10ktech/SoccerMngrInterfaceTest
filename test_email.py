@@ -14,6 +14,7 @@ verify_code_const = "6666"
 
 
 def send_verify_code_email(email):
+    """ 2.2 send email verify code """
     response = requests.post(url=domain + '/api/v1/player/login/email-vc/send',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
                              json={'email': email})
@@ -33,6 +34,7 @@ def send_verify_code_email(email):
 
 
 def register_email(first_name, last_name, password, verify_code, email):
+    """ 2.4 register with email """
     response = requests.post(url=domain + '/api/v1/player/login/email/register',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
                              json={"firstName": first_name,
@@ -53,6 +55,7 @@ def register_email(first_name, last_name, password, verify_code, email):
 
 
 def login(phone="", email="", password=""):
+    """ 2.5 login with phone & 2.6 login with email """
     response = None
     if phone:
         response = requests.post(url=domain + '/api/v1/player/login/sms/login',
@@ -74,21 +77,8 @@ def login(phone="", email="", password=""):
     return {"status_code": response.status_code, "response": response_content}
 
 
-def validate_email_pwd(email="muhsen@gmail.com", pwd="Password123"):
-    response = requests.post(url=domain + '/api/v1/player/login/email-pwd/verify',
-                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
-                             json={"pwd": pwd, 'email': email})
-    log_er.log_info(f" -Validating email: {email} and password: {pwd}")
-    verify_success = True
-    if response.status_code == 400:
-        # As long as it does not return "vc not expired" error, continue.
-        error = response.json()
-        log_er.log_info(f" -Failed to validate input: {response.json()}")
-        verify_success = False
-    return verify_success
-
-
 def reset_pwd(phone="", email="", password="", temp_token=""):
+    """ 2.7 reset pwd with phone & 2.8 reset pwd with email """
     response = None
     if phone:
         response = requests.post(url=domain + "/api/v1/player/login/sms/reset-pwd",
@@ -111,7 +101,37 @@ def reset_pwd(phone="", email="", password="", temp_token=""):
     return {"status_code": response.status_code, "response": response_content}
 
 
+def validate_email_pwd(email="muhsen@gmail.com", pwd="Password123"):
+    """ 2.9 verify email and password """
+    response = requests.post(url=domain + '/api/v1/player/login/email-pwd/verify',
+                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
+                             json={"pwd": pwd, 'email': email})
+    log_er.log_info(f" -Validating email: {email} and password: {pwd}")
+    verify_success = True
+    if response.status_code == 400:
+        # As long as it does not return "vc not expired" error, continue.
+        error = response.json()
+        log_er.log_info(f" -Failed to validate input: {response.json()}")
+        verify_success = False
+    return verify_success
+
+
+def does_email_exist(email):
+    """ 2.12 verify email exists """
+    response = requests.post(url=domain + '/api/v1/player/login/email/exists',
+                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
+                             json={"email": email})
+    if response.status_code == 200:
+        log_er.log_info(f"Email {email} exists.")
+        return True
+    else:
+        error = response.json()
+        log_er.log_info(f"Error: {error['code']}")
+        return False
+
+
 def get_temp_token(email):
+    """ 2.14 verify email vc """
     response = requests.post(url=domain + "/api/v1/player/login/email/verify-vc",
                              headers={'User-Agent': user_agent},
                              json={"verifyCode": verify_code_const,
@@ -390,3 +410,9 @@ def test_validate_email_fail():
 
     log_er.log_info(f" Num of Failed Validation: {fail}")
     assert fail == 3
+
+
+def test_email_exists():
+    """ Check if email exists """
+    result = does_email_exist("muhsen@gmail.com")
+    assert result

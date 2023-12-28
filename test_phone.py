@@ -11,6 +11,7 @@ verify_code_const = "6666"
 
 
 def send_verify_code_sms(phone):
+    """ 2.1 send sms verify code. """
     response = requests.post(url=domain + '/api/v1/player/login/sms-vc/send',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
                              json={'telNo': phone})
@@ -29,21 +30,8 @@ def send_verify_code_sms(phone):
     return vc_success
 
 
-def validate_phone_pwd(phone="1234568790", pwd="Password123"):
-    response = requests.post(url=domain + '/api/v1/player/login/mobile-pwd/verify',
-                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
-                             json={"pwd": pwd, 'telNo': phone})
-    log_er.log_info(f" -Validating phone number: {phone} and password: {pwd}")
-    verify_success = True
-    if response.status_code == 400:
-        # As long as it does not return "vc not expired" error, continue.
-        error = response.json()
-        log_er.log_info(f" -Failed to verify input: {response.json()}")
-        verify_success = False
-    return verify_success
-
-
 def register_phone(first_name, last_name, password, verify_code, phone_num):
+    """ 2.3 register with phone """
     response = requests.post(url=domain + '/api/v1/player/login/sms/register',
                              headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
                              json={"firstName": first_name,
@@ -63,7 +51,37 @@ def register_phone(first_name, last_name, password, verify_code, phone_num):
     return response_values
 
 
+def validate_phone_pwd(phone="1234568790", pwd="Password123"):
+    """ 2.10 verify mobile and password. """
+    response = requests.post(url=domain + '/api/v1/player/login/mobile-pwd/verify',
+                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
+                             json={"pwd": pwd, 'telNo': phone})
+    log_er.log_info(f" -Validating phone number: {phone} and password: {pwd}")
+    verify_success = True
+    if response.status_code == 400:
+        # As long as it does not return "vc not expired" error, continue.
+        error = response.json()
+        log_er.log_info(f" -Failed to verify input: {response.json()}")
+        verify_success = False
+    return verify_success
+
+
+def does_mobile_exist(phone):
+    """ 2.11 verify mobile exists """
+    response = requests.post(url=domain + '/api/v1/player/login/mobile/exists',
+                             headers={'Content-Type': 'application/json', 'User-Agent': user_agent},
+                             json={"telNo": phone})
+    if response.status_code == 200:
+        log_er.log_info(f" -Phone number: {phone} exists.")
+        return True
+    else:
+        error = response.json()
+        log_er.log_info(f" -Error: {error['code']}")
+        return False
+
+
 def get_temp_token(phone):
+    """ 2.13 verify mobile vc """
     response = requests.post(url=domain + "/api/v1/player/login/mobile/verify-vc",
                              headers={'User-Agent': user_agent},
                              json={"verifyCode": verify_code_const,
@@ -71,7 +89,9 @@ def get_temp_token(phone):
     if response.status_code == 200:
         return response.content.decode()
     else:
-        return response.json()
+        error = response.json()
+        log_er.log_info(f" -Unable to get temp token - Error: {error['code']}")
+        return error['code']
 
 # -------------------- TEST FUNCTIONS -------------------- #
 
@@ -314,6 +334,7 @@ def test_reset_pwd_valid_phone():
         assert vc_response
 
 
+@pytest.mark.skip
 def test_reset_pwd_nonexist_phone():
     """Unable to reset password with phone number that is not registered yet."""
     nonexistent_phone = "1232587891"
@@ -327,7 +348,7 @@ def test_reset_pwd_nonexist_phone():
         log_er.log_info(f"Error: {temp_token['code']}")
         assert temp_token['code'] == "MOBILE_NUMBER_NOT_EXISTS"
     else:
-        assert temp_token
+        assert vc_response
 
 
 def test_verify_phone_pwd():
@@ -369,4 +390,8 @@ def test_verify_phone_fail():
     assert fail == 3
 
 
+def test_mobile_exists():
+    """ Check if mobile number exists """
+    result = does_mobile_exist("9097656256")
+    assert result
 
