@@ -10,7 +10,7 @@ user_agent = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.3
               "Safari/537.36")
 
 log_er = Logger("SquadPlanner")
-token = login(email="yes@yes.com", password="123456Aa")["response"]
+token = login(email="yes@no.com", password="Qwerty12")["response"]
 common_request = {"squadType": "null", "setIndex": 0,
                   "squadPosition": {"position": 0, "soccerPlayerId": "0"}, "playerPosition": "null"}
 
@@ -49,6 +49,16 @@ def get_squad_info():
     return response.json()
 
 
+def set_formation(squad_type="HOME", preset=0, formation="FOUR_FOUR_TWO"):
+    """ 6.2 Set Formation for a squad. """
+    response = requests.put(url=domain + '/api/v1/squad/formation',
+                            headers={'User-Agent': user_agent, 'Authorization': token},
+                            json={"squadType": squad_type, "setIndex": preset, "formationType": formation})
+    if response.status_code == 400:
+        log_er.log_info(f" -Setting formation for squad {squad_type} {preset} failed. Error: {response.json()}")
+    return response.status_code
+
+
 def get_all_soccer_player_ids():
     """ 6.1 Get IDs of each soccer player that exists in an account. """
     soccer_player_ids = []
@@ -71,8 +81,69 @@ def remove_slot(squad_type, preset, role_position, player_id, role):
     return response.status_code
 
 
+def autofill_squad(squad_type="HOME", preset=0, formation=None):
+    """ 6.9 auto fill formation slot. """
+    if formation is None:
+        formation = []
+
+    if sum(formation) > 10:
+        log_er.log_info("Formation is not correct.")
+        return 0
+    elif len(formation) == 0:
+        log_er.log_info("Formation is empty.")
+        return 0
+
+    fill_count = 1
+    players = []
+    autofill_request_json = {"squadType": squad_type, "setIndex": preset, "items": []}
+    all_soccer_players_json = get_all_soccer_players_info()
+
+    mid_count = formation[0] + formation[1]
+
+    for player in all_soccer_players_json:
+        if player["playerPosition"] == "FW" and fill_count <= formation[0]:
+            players.append(get_player_template(fill_count, player['id'], "FW"))
+            fill_count += 1
+
+    for player in all_soccer_players_json:
+        if player["playerPosition"] == "MID" and formation[0] < fill_count <= mid_count:
+            players.append(get_player_template(fill_count - formation[0], player['id'], "MID"))
+            fill_count += 1
+
+    for player in all_soccer_players_json:
+        if player["playerPosition"] == "DEF" and mid_count < fill_count <= 10:
+            players.append(get_player_template(fill_count - mid_count, player['id'], "DEF"))
+            fill_count += 1
+
+    for player in all_soccer_players_json:
+        if player["playerPosition"] == "GK":
+            players.append(get_player_template(1, player['id'], "GK"))
+            break
+
+    autofill_request_json["items"] = players
+    log_er.log_info(autofill_request_json)
+    response = requests.put(url=domain + '/api/v1/squad/formation/auto-fill-slot',
+                            headers={'User-Agent': user_agent, 'Authorization': token},
+                            json=autofill_request_json)
+    if response.status_code == 400:
+        log_er.log_info(response.json())
+    return response.status_code
+
+
+def test_get_all_soccer_players_info():
+    """ Get info of all the soccer players. """
+    get_all_soccer_players_info()
+    assert True
+
+
+def test_get_squad_info():
+    """ Get Squad Information. """
+    get_squad_info()
+    assert True
+
+
 def test_remove_slot():
-    """ Remove A Player Slot"""
+    """ 6.7 Remove A Player Slot"""
     # 1. Able to remove with proper input
     # status = remove_slot("HOME", 0, 1, "956177718774591488", "FW")
     # 2. Able to remove with player id = 0
@@ -88,47 +159,9 @@ def test_remove_slot():
     assert status == 200
 
 
-def autofill_4_4_2():
-    """ 6.9 auto fill formation slot. """
-    position = 1
-    # player_ids = []
-    players = []
-    all_soccer_players_json = get_all_soccer_players_info()
-
-    # logic difficulty with dictionaries
-    for player in all_soccer_players_json:
-        if player["playerPosition"] == "FW" and position <= 2:
-            # player_ids.append((player['id'], player['playerPosition']))
-            players.append(get_player_template(position, player['id'], "FW"))
-            position += 1
-        elif player["playerPosition"] == "MID" and 2 < position <= 6:
-            # player_ids.append((player['id'], player['playerPosition']))
-            players.append(get_player_template(position-2, player['id'], "MID"))
-            position += 1
-        elif player["playerPosition"] == "DEF" and 6 < position <= 10:
-            # player_ids.append((player['id'], player['playerPosition']))
-            players.append(get_player_template(position-6, player['id'], "DEF"))
-            position += 1
-        elif player["playerPosition"] == "GK" and position == 11:
-            # player_ids.append((player['id'], player['playerPosition']))
-            players.append(get_player_template(0, player['id'], "GK"))
-            position += 1
-    log_er.log_info(players)
-
-
-def test_get_all_soccer_players_info():
-    """ Get info of all the soccer players. """
-    get_all_soccer_players_info()
-    assert True
-
-
-def test_get_squad_info():
-    """ Get Squad Information. """
-    get_squad_info()
-    assert True
-
-
 def test_get_autofill_players():
-    """ After choosing strategy, the affected squad is updated. """
-    autofill_4_4_2()
-    assert True
+    """ 6.9 Auto-fill a squad. """
+    # "FIVE_THREE_TWO" "TWO_THREE_FIVE" "THREE_FIVE_TWO"
+    set_formation(squad_type="AWAY", preset=2, formation="FIVE_FOUR_ONE")
+    assert autofill_squad(squad_type="AWAY", preset=2, formation=[5, 4, 1]) == 200
+    get_squad_info()
