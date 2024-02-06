@@ -8,9 +8,10 @@ from test_email import login
 domain = "https://soccer-manager-qa.qq72bian.com"
 user_agent = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 "
               "Safari/537.36")
-
 log_er = Logger("SquadPlanner")
-token = login(email="yes@no.com", password="Qwerty12")["response"]
+
+# --- LOGIN --- #
+token = login(email="new@gmail.com", password="Password123")["response"]
 common_request = {"squadType": "null", "setIndex": 0,
                   "squadPosition": {"position": 0, "soccerPlayerId": "0"}, "playerPosition": "null"}
 
@@ -18,6 +19,14 @@ common_request = {"squadType": "null", "setIndex": 0,
 def get_player_template(role_position, player_id, role):
     return {"squadPosition": {"position": role_position, "soccerPlayerId": player_id},
             "playerPosition": role}
+
+
+def recruit_soccer_players_from_gacha(recruit_num=1):
+    log_er.log_info(f"Recruiting {recruit_num} new players.")
+    response = requests.post(url=domain + '/api/v1/gacha/pull',
+                             headers={'User-Agent': user_agent, 'Authorization': token},
+                             json={"setName": "Default_Banner", "recruitNumber": recruit_num})
+    return response.json()
 
 
 def get_all_soccer_players_info():
@@ -59,13 +68,15 @@ def set_formation(squad_type="HOME", preset=0, formation="FOUR_FOUR_TWO"):
     return response.status_code
 
 
-def get_all_soccer_player_ids():
+def get_all_players_role_id():
     """ 6.1 Get IDs of each soccer player that exists in an account. """
     soccer_player_ids = []
     all_soccer_players_json = get_all_soccer_players_info()
     for player in all_soccer_players_json:
-        soccer_player_ids.append((player["id"], player["playerPosition"]))
+        soccer_player_ids.append({"role": player["playerPosition"], "id": player["id"]})
     log_er.log_info(f" {soccer_player_ids}")
+    # pyperclip.copy(soccer_player_ids)
+    # log_er.log_info(f" All soccer players copied to clipboard.")
     return soccer_player_ids
 
 
@@ -93,7 +104,7 @@ def autofill_squad(squad_type="HOME", preset=0, formation=None):
         log_er.log_info("Formation is empty.")
         return 0
 
-    fill_count = 1
+    fill_count = 0  # position must start from 0 - left to right
     players = []
     autofill_request_json = {"squadType": squad_type, "setIndex": preset, "items": []}
     all_soccer_players_json = get_all_soccer_players_info()
@@ -101,23 +112,23 @@ def autofill_squad(squad_type="HOME", preset=0, formation=None):
     mid_count = formation[0] + formation[1]
 
     for player in all_soccer_players_json:
-        if player["playerPosition"] == "FW" and fill_count <= formation[0]:
-            players.append(get_player_template(fill_count, player['id'], "FW"))
+        if player["playerPosition"] == "DEF" and fill_count < formation[0]:
+            players.append(get_player_template(fill_count, player['id'], "DEF"))
             fill_count += 1
 
     for player in all_soccer_players_json:
-        if player["playerPosition"] == "MID" and formation[0] < fill_count <= mid_count:
+        if player["playerPosition"] == "MID" and formation[0] <= fill_count < mid_count:
             players.append(get_player_template(fill_count - formation[0], player['id'], "MID"))
             fill_count += 1
 
     for player in all_soccer_players_json:
-        if player["playerPosition"] == "DEF" and mid_count < fill_count <= 10:
-            players.append(get_player_template(fill_count - mid_count, player['id'], "DEF"))
+        if player["playerPosition"] == "FW" and mid_count <= fill_count < 10:
+            players.append(get_player_template(fill_count - mid_count, player['id'], "FW"))
             fill_count += 1
 
     for player in all_soccer_players_json:
         if player["playerPosition"] == "GK":
-            players.append(get_player_template(1, player['id'], "GK"))
+            players.append(get_player_template(0, player['id'], "GK"))
             break
 
     autofill_request_json["items"] = players
@@ -133,6 +144,12 @@ def autofill_squad(squad_type="HOME", preset=0, formation=None):
 def test_get_all_soccer_players_info():
     """ Get info of all the soccer players. """
     get_all_soccer_players_info()
+    assert True
+
+
+def test_get_all_players_role_id():
+    """ Get info of all the soccer players. """
+    get_all_players_role_id()
     assert True
 
 
@@ -162,6 +179,55 @@ def test_remove_slot():
 def test_get_autofill_players():
     """ 6.9 Auto-fill a squad. """
     # "FIVE_THREE_TWO" "TWO_THREE_FIVE" "THREE_FIVE_TWO"
-    set_formation(squad_type="AWAY", preset=2, formation="FIVE_FOUR_ONE")
-    assert autofill_squad(squad_type="AWAY", preset=2, formation=[5, 4, 1]) == 200
+    set_formation(squad_type="HOME", preset=0, formation="FIVE_THREE_TWO")
+    assert autofill_squad(squad_type="HOME", preset=0, formation=[5, 3, 2]) == 200
     get_squad_info()
+
+
+def test_gacha_players_added():
+    """A pull of new recruits from gacha adds to user's inventory correctly."""
+    # Enter number of soccer players to recruit here.
+    recruit_num = 10
+    new_recruits = recruit_soccer_players_from_gacha(recruit_num)
+    all_players = get_all_soccer_players_info()
+    match_count = 0
+    for recruit in new_recruits:
+        for player in all_players:
+            if player['id'] == recruit['id']:
+                match_count += 1
+                log_er.log_info(f"{match_count} - New recruit {player['id']} exists in user's account.")
+                break
+    log_er.log_info(f"Total number of players now: {len(all_players)}")
+    assert match_count == recruit_num
+
+
+def test_gacha_rarity_chance(recruit_num=10, times=10):
+    """Check rarity percentage."""
+    ssr_count = 0
+    sr_count = 0
+    r_count = 0
+    all_new_recruits = []
+    for gacha_try in range(times):
+        new_recruits = recruit_soccer_players_from_gacha(recruit_num)
+        for recruit in new_recruits:
+            if recruit['rarity'] == "SSR":
+                ssr_count += 1
+            elif recruit['rarity'] == "SR":
+                sr_count += 1
+            elif recruit['rarity'] == "R":
+                r_count += 1
+            else:
+                log_er.log_info("Player has no Rarity.")
+        all_new_recruits.extend(new_recruits)
+        # new_recruits.clear()
+    total_new_recruits = len(all_new_recruits)
+    ssr_percent = ssr_count / total_new_recruits
+    sr_percent = sr_count / total_new_recruits
+    r_percent = r_count / total_new_recruits
+    log_er.log_info(f"SSR_percentage = {ssr_count} / {total_new_recruits} = {ssr_percent}")
+    log_er.log_info(f"SR_percentage = {sr_count} / {total_new_recruits} = {sr_percent}")
+    log_er.log_info(f"R_percentage = {r_count} / {total_new_recruits} = {r_percent}")
+    pyperclip.copy(f"{ssr_percent},{sr_percent},{r_percent}")
+    log_er.log_info("Copied csv.")
+    assert total_new_recruits == recruit_num * times
+
