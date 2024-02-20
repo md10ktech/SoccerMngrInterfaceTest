@@ -11,7 +11,7 @@ user_agent = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.3
 log_er = Logger("SquadPlanner")
 
 # --- LOGIN --- #
-token = login(email="new@gmail.com", password="Password123")["response"]
+token = login(email="emmastone@gmail.com", password="Password123")["response"]
 common_request = {"squadType": "null", "setIndex": 0,
                   "squadPosition": {"position": 0, "soccerPlayerId": "0"}, "playerPosition": "null"}
 
