@@ -1,5 +1,6 @@
 import requests
 import json
+import pyperclip
 
 from logger import Logger
 from test_email import login
@@ -8,7 +9,7 @@ domain = "https://soccer-manager-qa.qq72bian.com"
 user_agent = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 "
               "Safari/537.36")
 log_er = Logger("KickOff")
-token = login(email="openmove@gmail.com", password="Password123")["response"]
+token = login(email="emmastone@gmail.com", password="Password123")["response"]
 matchId = 0
 
 
@@ -26,6 +27,16 @@ def get_opponent_list():
     return opponent_ids[0]
 
 
+def refresh_opponent_list():
+    response = requests.get(url=domain + '/api/v1/kick-off/tournament/opposite/refresh',
+                            headers={'Content-Type': 'application/json', 'User-Agent': user_agent,
+                                     'Authorization': token})
+    log_er.log_info(f"Refreshing opponent list \nToken: {token}")
+    json_str = json.dumps(response.json())
+    pyperclip.copy(json_str)
+    return response.status_code
+
+
 def get_opponent_home_team_info():
     first_opponent = get_opponent_list()
     response = requests.get(url=domain + '/api/v1/kick-off/tournament/opposite/home-team-info',
@@ -34,7 +45,7 @@ def get_opponent_home_team_info():
                             params={'oppositePlayerId': first_opponent})
     log_er.log_info(f"Getting opponent {first_opponent}  home team info \nToken: {token}")
     log_er.log_info(f"Response Status Code: {response.status_code}")
-    # log_er.log_info(f"{response.json()}")
+    log_er.log_info(f"{response.json()}")
 
 
 def start_match():
@@ -67,6 +78,11 @@ def get_match_result():
 def test_get_opponent_list():
     """ 5.1 Get tournament opposite list. """
     get_opponent_list()
+
+
+def test_refresh_opponent_list():
+    """ 5.2 Refresh tournament opposite list. """
+    assert refresh_opponent_list() == 200
 
 
 def test_get_opponent_info():
