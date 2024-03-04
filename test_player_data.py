@@ -9,6 +9,8 @@ password = "Password123"
 valid_email = randomize_email()
 valid_phone_num = randomize_mobile_num()
 
+token = login(email="m_m@yahoo.com", password="Password123")["response"]
+
 
 def get_player_info(register_token):  # Passing in token here to prevent scope issues
     if register_token:
@@ -20,7 +22,43 @@ def get_player_info(register_token):  # Passing in token here to prevent scope i
     else:
         return "No json obtained."
 
-# -------------------- EMAIL -------------------- #
+
+def update_player_nickname():
+    response = requests.put(url=domain + '/api/v1/player/nickname',
+                            headers={'User-Agent': user_agent, 'Authorization': token},
+                            json={"updateValue": "Player 20"})
+    if response.status_code == 400:
+        log_er.log_info(f"Update player Nickname response: {response.json()}")
+    return response.status_code
+
+
+def update_player_club_name():
+    response = requests.put(url=domain + '/api/v1/player/club-name',
+                            headers={'User-Agent': user_agent, 'Authorization': token},
+                            json={"updateValue": "Football Club 2"})
+    if response.status_code == 400:
+        log_er.log_info(f"Update Player Club Name response: {response.json()}")
+    return response.status_code
+
+
+def update_player_icon_index():
+    response = requests.put(url=domain + '/api/v1/player/head-icon',
+                            headers={'User-Agent': user_agent, 'Authorization': token},
+                            json={"updateValue": "1"})
+    if response.status_code == 400:
+        log_er.log_info(f"Update Icon Index response: {response.json()}")
+    return response.status_code
+
+
+def test_bug():
+    """ To test error when all update requests are called at once."""
+    update_player_nickname()
+    update_player_club_name()
+    update_player_icon_index()
+    get_player_info(token)
+
+
+# -------------------- WITH EMAIL LOGIN -------------------- #
 
 
 def test_get_player_info_email():
@@ -44,7 +82,7 @@ def test_update_nickname_email():
     # Assuming the above test case has been run prior to this.
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         response = requests.put(url=domain + "/api/v1/player/nickname",
                                 headers={'User-Agent': user_agent, "Authorization": token},
                                 json={"updateValue": nickname_new_value})
@@ -64,7 +102,7 @@ def test_update_club_name_email():
     club_name_new_value = "Gastronomy Club"
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         response = requests.put(url=domain + "/api/v1/player/club-name",
                                 headers={'User-Agent': user_agent, "Authorization": token},
                                 json={"updateValue": club_name_new_value})
@@ -84,7 +122,7 @@ def test_update_icon_index_email():
     head_icon_new_index = "2"  # 7e53nt
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         response = requests.put(url=domain + "/api/v1/player/head-icon",
                                 headers={'User-Agent': user_agent, "Authorization": token},
                                 json={"updateValue": head_icon_new_index})
@@ -103,7 +141,7 @@ def test_get_generated_name_email():
     """Able to generate nickname of a player who registered with email."""
     login_response = login(email=valid_email, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         response = requests.get(url=domain + "/api/v1/player/system-generated-name",
                                 headers={'User-Agent': user_agent, "Authorization": token},
                                 params={"player-name-type": "NICK_NAME"})
@@ -116,7 +154,7 @@ def test_get_generated_name_email():
         log_er.log_info(" -Unable to retrieve token with provided email.")
         assert login_response['status_code'] == 200
 
-# -------------------- PHONE -------------------- #
+# -------------------- WITH PHONE LOGIN -------------------- #
 
 
 def test_get_player_info_phone():
@@ -140,7 +178,7 @@ def test_update_nickname_phone():
     # Assuming the above test case has been run prior to this.
     login_response = login(phone=valid_phone_num, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         response = requests.put(url=domain + "/api/v1/player/nickname",
                                 headers={'User-Agent': user_agent, "Authorization": token},
                                 json={"updateValue": nickname_new_value})
@@ -160,7 +198,7 @@ def test_update_club_name_phone():
     club_name_new_value = "Followers of No Name"
     login_response = login(phone=valid_phone_num, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         response = requests.put(url=domain + "/api/v1/player/club-name",
                                 headers={'User-Agent': user_agent, "Authorization": token},
                                 json={"updateValue": club_name_new_value})
@@ -181,7 +219,7 @@ def test_update_icon_index_phone():
     head_icon_new_index = "3"  # 7e53nt
     login_response = login(phone=valid_phone_num, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         log_er.log_info(f" -Head Icon Index new value: {head_icon_new_index}")
         response = requests.put(url=domain + "/api/v1/player/head-icon",
                                 headers={'User-Agent': user_agent, "Authorization": token},
@@ -200,7 +238,7 @@ def test_get_generated_name_phone():
     """Able to generate nickname of a player who registered with phone number."""
     login_response = login(phone=valid_phone_num, password=password)
     if login_response['status_code'] == 200:
-        token = login_response["response"]
+        # token = login_response["response"]
         response = requests.get(url=domain + "/api/v1/player/system-generated-name",
                                 headers={'User-Agent': user_agent, "Authorization": token},
                                 params={"player-name-type": "NICK_NAME"})
