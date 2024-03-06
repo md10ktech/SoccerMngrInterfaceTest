@@ -305,7 +305,7 @@ def test_wrong_verify_code():
 def test_email_login():
     """Able to login using registered email and correct password."""
     # email = valid_email
-    email = "m_m@yahoo.com"
+    email = "my_mama@yahoo.com"
     login_response = login(email=email, password=valid_pwd)
     log_er.log_info(f" -Email= {email}, Password= {valid_pwd}")
     log_er.log_info(f"Token: {login_response['response']}")
